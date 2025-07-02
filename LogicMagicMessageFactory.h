@@ -14,6 +14,9 @@ public:
         auto it = creators.find(messageType);
 
         if (it != creators.end()) {
+            if (it->first == 10101) {
+                cout << "[LogicMagicMessageFactory] Created new message " << messageType << endl;
+            }
             return it->second();
         } else {
             return nullptr;

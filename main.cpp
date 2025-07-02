@@ -2,7 +2,6 @@
 #include <boost/asio.hpp>
 #include <thread>
 #include "Connection.h"
-#include "ByteStream.h"
 
 using namespace boost::asio;
 using ip::tcp;
@@ -23,8 +22,9 @@ int main()
         acceptor.accept(socket);
 
         auto sock_ptr = make_shared<tcp::socket>(std::move(socket));
+        auto remote_ep = sock_ptr->remote_endpoint();
 
-        std::cout << "Accepted new connection" << std::endl;
+        std::cout << "Accepted new connection " << remote_ep.address().to_string() << ":" << remote_ep.port() << std::endl;
 
         thread session([sock_ptr](){
             Connection sess(sock_ptr, "fhsd6f86f67rt8fw78fw789we78r9789wer6re");

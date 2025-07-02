@@ -69,8 +69,6 @@ public:
 
         std::copy(encEncodingBytes.begin(), encEncodingBytes.end(), buffer.begin() + 7);
 
-        cout << "Buffer size: " << buffer.size() << endl;
-
         boost::system::error_code error;
         boost::asio::write(*client, boost::asio::buffer(buffer), error);
 

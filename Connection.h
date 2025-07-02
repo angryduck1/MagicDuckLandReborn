@@ -58,35 +58,16 @@ public:
         return data;
     }
 
-
-    int send(string message) {
-        boost::system::error_code error;
-
-        // write(*client, buffer(rc4.encrypt(message)), error);
-
-        if (error) {
-            cerr << "Error send message to client: " << error.value() << " " << error.message() << endl;
-            return 1;
-        } else {
-            return 0;
-        }
-    }
-
     int run() {
         while (true) {
             vector<uint8_t> handle = recv(7);
 
-            if (handle.size() < 7) {
-                cerr << "Error put handle message" << endl;
-                continue;
-            } else {
+            if (handle.size() == 7) {
                 Header header = messaging.readHeader(handle);
 
                 int messageType = header.messageType;
                 int encodingLength = header.encodingLength;
                 int messageVersion = header.messageVersion;
-
-                cout << static_cast<unsigned int>(encodingLength) << endl;
 
                 vector<uint8_t> payload = recv(encodingLength);
 
@@ -102,7 +83,7 @@ public:
 
                     std::vector<uint8_t> decPayload = rc4.decrypt(payload);
 
-                    message->getByteStream().setByteArray(decPayload, encodingLength, decPayload.size());
+                    message->getByteStream().setByteArray(decPayload, encodingLength);
 
                     message->decode();
 
@@ -110,6 +91,10 @@ public:
                 } else {
                     cout << "[Connection] Ignoring message of unknown type " << messageType << endl;
                 }
+            } else {
+                client->close();
+                cout << "Client disconnected" << endl;
+                break;
             }
         }
 

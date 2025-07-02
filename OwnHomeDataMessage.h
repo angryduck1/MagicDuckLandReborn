@@ -6,16 +6,21 @@
 #include "LogicClientHome.h"
 #include <memory.h>
 
+using namespace std;
+
 class OwnHomeDataMessage : public PiranhaMessage {
 public:
     OwnHomeDataMessage() : PiranhaMessage(0) {
-
+        avatar = std::make_unique<LogicClientAvatar>(LogicClientAvatar());
+        home = std::make_unique<LogicClientHome>(LogicClientHome());
     }
 
     void encode() override {
+        PiranhaMessage::encode();
+
         stream.writeInt(0);
-        home->encode();
-        avatar->encode();
+        home->encode(stream);
+        avatar->encode(stream);
     }
 
     int getMessageType() const override {

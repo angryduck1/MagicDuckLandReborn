@@ -1,83 +1,81 @@
 #ifndef LOGICCLIENTAVATAR_H
 #define LOGICCLIENTAVATAR_H
 
-#include "PiranhaMessage.h"
 #include <vector>
+#include <iostream>
+#include "LogicBase.h"
+#include "LogicLong.h"
+#include "ChecksumEncoder.h"
 
-using namespace std;
-
-class LogicClientAvatar : public PiranhaMessage {
+class LogicClientAvatar : public LogicBase {
 public:
-    LogicClientAvatar() : PiranhaMessage(0) {
+    LogicClientAvatar() {
         resources = {3000001, 3000002, 3000003};
-        tutor = {21000000, 21000001, 21000002, 21000003, 21000004, 21000005, 21000006, 21000007, 21000008, 21000009, 21000010, 21000011, 21000012, 21000013};
+        for (int i = 21000000; i < 21000013; ++i) {
+            tutorialSteps.push_back(i);
+        }
     }
 
-    void encode() override {
-        stream.writeLong(LogicLong(1, 1));
-        stream.writeLong(LogicLong(1, 1));
-        stream.writeBoolean(false);
-        stream.writeBoolean(false);
-        stream.writeBoolean(false);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeString("reborn++"); // Name
-        stream.writeString("");
-        stream.writeInt(1);
-        stream.writeInt(0);
-        stream.writeInt(25000); // Diamonds
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeBoolean(false);
-        stream.writeInt(0);
+    void encode(ChecksumEncoder& encoder) override {
+        LogicBase::encode(encoder);
 
-        stream.writeInt(0);
-        stream.writeInt(resources.size());
+        encoder.writeLong(LogicLong(1, 1));
+        encoder.writeLong(LogicLong(1, 1));
+        encoder.writeBoolean(false);
+        encoder.writeBoolean(false);
+        encoder.writeBoolean(false);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeString("reborn++"); // Name
+        encoder.writeString("");
+        encoder.writeInt(1);
+        encoder.writeInt(0);
+        encoder.writeInt(25000);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeBoolean(false);
+        encoder.writeInt(0);
 
-        for (auto i : resources) {
-            stream.writeInt(i);
-            stream.writeInt(5000);
+        encoder.writeInt(0);
+        encoder.writeInt(static_cast<int>(resources.size()));
+        for (int item : resources) {
+            encoder.writeInt(item);
+            encoder.writeInt(5000);
         }
 
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
 
-        stream.writeInt(tutor.size());
-
-        for (auto i : tutor) {
-            stream.writeInt(i);
+        encoder.writeInt(static_cast<int>(tutorialSteps.size()));
+        for (int step : tutorialSteps) {
+            encoder.writeInt(step);
         }
 
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
-        stream.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
+        encoder.writeInt(0);
     }
-
-    int getMessageType() const override {
-        return 0;
-    }
-
 
 private:
-    vector<int> resources;
-    vector<int> tutor;
+    std::vector<int> resources;
+    std::vector<int> tutorialSteps;
 };
 
 #endif // LOGICCLIENTAVATAR_H

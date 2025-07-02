@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <stdexcept>
 #include <algorithm>
+#include <cstring>
 #include "ChecksumEncoder.h"
 #include "LogicLong.h"
 #include <iostream>
@@ -14,12 +15,11 @@ class ByteStream : public ChecksumEncoder {
 private:
     std::vector<uint8_t> buffer;
     size_t offset = 0;
-    size_t length = 0;
     int bitIndex = 0;
 
     void ensureCapacity(size_t capacity) {
         if (offset + capacity > buffer.size()) {
-            buffer.resize(buffer.size() + capacity + 100);
+            buffer.resize(offset + capacity + 100);
         }
     }
 
@@ -27,13 +27,11 @@ public:
     explicit ByteStream(size_t capacity = 1024) {
         buffer.resize(capacity);
         offset = 0;
-        length = 0;
         bitIndex = 0;
     }
 
     void destruct() {
         offset = 0;
-        length = 0;
         bitIndex = 0;
         buffer.clear();
     }
@@ -52,7 +50,7 @@ public:
     }
 
     size_t getLength() const {
-        return (offset < length) ? length : offset;
+        return offset;
     }
 
     size_t getOffset() const {
@@ -60,7 +58,7 @@ public:
     }
 
     bool isAtEnd() const {
-        return offset >= length;
+        return offset >= buffer.size();
     }
 
     bool isCheckSumOnlyMode() const override {
@@ -69,11 +67,16 @@ public:
 
     bool readBoolean() {
         if (bitIndex == 0) {
+            if (offset >= buffer.size()) throw std::out_of_range("...");
+        }
+
+        bool value = (buffer[offset] & (1 << bitIndex)) != 0;
+        bitIndex = (bitIndex + 1) & 7;
+
+        if (bitIndex == 0) {
             ++offset;
         }
-        if (offset == 0) throw std::out_of_range("readBoolean offset underflow");
-        bool value = (buffer[offset - 1] & (1 << bitIndex)) != 0;
-        bitIndex = (bitIndex + 1) & 7;
+
         return value;
     }
 
@@ -92,7 +95,8 @@ public:
             return {};
         }
         if (length <= maxCapacity) {
-            if (offset + length > buffer.size()) throw std::out_of_range("readBytes out of range");
+            if (offset + static_cast<size_t>(length) > buffer.size())
+                throw std::out_of_range("readBytes out of range");
             std::vector<uint8_t> result(buffer.begin() + offset, buffer.begin() + offset + length);
             offset += length;
             return result;
@@ -104,11 +108,11 @@ public:
         return readInt();
     }
 
-    void setByteArray(const std::vector<uint8_t>& buf, size_t len, size_t /*BufferLength*/) {
+    void setByteArray(const std::vector<uint8_t>& buf, size_t len) {
         offset = 0;
-        length = len;
         bitIndex = 0;
         buffer = buf;
+        buffer.resize(len);
     }
 
     int32_t readInt() {
@@ -146,11 +150,10 @@ public:
             std::cerr << "readString out of range" << std::endl;
             return "";
         }
-        std::string result(buffer.begin() + offset, buffer.begin() + offset + length);
+        std::string result(reinterpret_cast<const char*>(buffer.data() + offset), length);
         offset += length;
         return result;
     }
-
 
     std::string readStringReference(int maxCapacity = 900000) {
         int length = readBytesLength();
@@ -161,13 +164,14 @@ public:
             throw std::runtime_error("Too long String encountered, max " + std::to_string(maxCapacity));
         }
         if (offset + length > buffer.size()) throw std::out_of_range("readStringReference out of range");
-        std::string result(buffer.begin() + offset, buffer.begin() + offset + length);
+        std::string result(reinterpret_cast<const char*>(buffer.data() + offset), length);
         offset += length;
         return result;
     }
 
     void removeByteArray() {
         buffer.clear();
+        offset = 0;
     }
 
     void resetOffset() {
@@ -183,16 +187,20 @@ public:
 
     void writeBoolean(bool value) override {
         ChecksumEncoder::writeBoolean(value);
+
         if (bitIndex == 0) {
             ensureCapacity(1);
             buffer[offset] = 0;
             ++offset;
         }
+
         if (value) {
-            buffer[offset - 1] |= (1 << bitIndex) & 0xFF;
+            buffer[offset - 1] |= (1 << bitIndex);
         }
+
         bitIndex = (bitIndex + 1) & 7;
     }
+
 
     void writeByte(uint8_t value) override {
         ChecksumEncoder::writeByte(value);
@@ -202,15 +210,17 @@ public:
         ++offset;
     }
 
-    void writeBytes(const std::vector<uint8_t>& data, size_t length) override {
-        ChecksumEncoder::writeBytes(data, length);
+    void writeBytes(const std::vector<uint8_t>& data, size_t data_length) override {
+        ChecksumEncoder::writeBytes(data, data_length);
         if (data.empty()) {
             writeInt(-1);
         } else {
-            ensureCapacity(length + 4);
-            writeInt(static_cast<int32_t>(length));
-            std::copy(data.begin(), data.begin() + length, buffer.begin() + offset);
-            offset += length;
+            ensureCapacity(data_length + 4);
+            writeInt(static_cast<int32_t>(data_length));
+            if (data_length > 0) {
+                std::memcpy(buffer.data() + offset, data.data(), data_length);
+                offset += data_length;
+            }
         }
     }
 
@@ -251,8 +261,10 @@ public:
         }
         ensureCapacity(length + 4);
         writeInt(static_cast<int32_t>(length));
-        std::copy(value.begin(), value.end(), buffer.begin() + offset);
-        offset += length;
+        if (length > 0) {
+            std::memcpy(buffer.data() + offset, value.data(), length);
+            offset += length;
+        }
     }
 
     void writeStringReference(const std::string& value) override {
@@ -264,17 +276,18 @@ public:
         }
         ensureCapacity(length + 4);
         writeIntToByteArray(static_cast<int32_t>(length));
-        std::copy(value.begin(), value.end(), buffer.begin() + offset);
-        offset += length;
+        if (length > 0) {
+            std::memcpy(buffer.data() + offset, value.data(), length);
+            offset += length;
+        }
     }
 
     void clear(size_t capacity) {
         buffer.clear();
         offset = 0;
-        length = 0;
         bitIndex = 0;
-        if (capacity > UINT32_MAX) {
-            capacity = UINT32_MAX;
+        if (capacity > SIZE_MAX) {
+            capacity = SIZE_MAX;
         }
         buffer.resize(capacity);
     }
