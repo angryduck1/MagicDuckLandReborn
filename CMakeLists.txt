@@ -9,27 +9,40 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Boost 1.73 REQUIRED COMPONENTS system thread)
 
 add_executable(MagicDuckLandReborn main.cpp
-    Rc4.h
-    Connection.h
-    Messaging.h
-    Header.h
-    LogicMagicMessageFactory.h
-    PiranhaMessage.h
-    LoginMessage.h
-    ByteStream.h
-    LogicLong.h
-    ChecksumEncoder.h
-    LogicLong.cpp
-    MessageManager.h
-    PiranhaMessage.cpp
-    LoginOkMessage.h
-    OwnHomeDataMessage.h
-    LogicClientHome.h
-    LogicClientAvatar.h
-    LogicBase.h)
+    Titan/RC4/Rc4.h
+    Server/Connection.h
+    Server/Messaging.h
+    Server/Header.h
+    Logic/LogicMagicMessageFactory.h
+    Titan/PiranhaMessage.h
+    Logic/Login/LoginMessage.h
+    Titan/ByteStream.h
+    Titan/LogicLong.h
+    Titan/ChecksumEncoder.h
+    Titan/LogicLong.cpp
+    Server/MessageManager.h
+    Titan/PiranhaMessage.cpp
+    Logic/Login/LoginOkMessage.h
+    Logic/Home/OwnHomeDataMessage.h
+    Logic/Home/LogicClientHome.h
+    Logic/Home/LogicClientAvatar.h
+    Logic/LogicBase.h
+    Logic/Commands/EndClientTurnMessage.h
+    Logic/Commands/LogicCommandManager.h
+    Logic/Commands/LogicCommand.h
+    Logic/Commands/LogicBuyBuildingCommand.h
+    Logic/Name/ChangeAvatarNameMessage.h)
 
 target_include_directories(MagicDuckLandReborn PRIVATE
     ${Boost_INCLUDE_DIRS}
+    ${CMAKE_SOURCE_DIR}/Titan
+    ${CMAKE_SOURCE_DIR}/Server
+    ${CMAKE_SOURCE_DIR}/Logic
+    ${CMAKE_SOURCE_DIR}/Titan/RC4
+    ${CMAKE_SOURCE_DIR}/Logic/Home
+    ${CMAKE_SOURCE_DIR}/Logic/Login
+    ${CMAKE_SOURCE_DIR}/Logic/Commands
+    ${CMAKE_SOURCE_DIR}/Logic/Name
 )
 
 target_link_libraries(MagicDuckLandReborn PRIVATE
